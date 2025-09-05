@@ -1,9 +1,2 @@
-agentscope[full]
-python-dotenv
-packaging
-Pillow
-tensorflow
-torch
-numpy
-scipy
-gradio
+agentscope
+google-generativeai
