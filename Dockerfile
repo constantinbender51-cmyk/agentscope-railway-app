@@ -17,4 +17,4 @@ COPY . .
 EXPOSE 8090
 
 # Command to run your application
-CMD ["python", "main.py"]
+CMD ["python", "simple_agentscope_example.py"]
