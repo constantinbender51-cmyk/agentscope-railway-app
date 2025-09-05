@@ -1,66 +1,54 @@
+# This script demonstrates how to set up a simple agent using AgentScope
+# with the Google Gemini 2.5 Flash-Lite model.
+
+# To run this, you must have the required packages installed:
+# pip install -r requirements.txt
+#
+# You also need to set your Google API key as an environment variable:
+# export GOOGLE_API_KEY="YOUR_API_KEY"
+
+import agentscope
+from agentscope.models import GeminiChatWrapper
+from agentscope.agents import DialogAgent, UserAgent
+from agentscope.pipelines import SequentialPipeline
 import os
-import asyncio
-from agentscope.agent import ReActAgent, UserAgent
-from agentscope.model import OpenAIChatModel
-from agentscope.memory import InMemoryMemory
-from agentscope.tool import Toolkit
-from agentscope.message import Msg
 
-# To use this agent, you'll need to set the OPENAI_API_KEY as an environment variable.
-# On Railway, you can do this in the "Variables" section of your project settings.
-api_key = os.getenv("OPENAI_API_KEY")
+# Initialize AgentScope
+agentscope.init()
+
+# Check if the GOOGLE_API_KEY environment variable is set
+api_key = os.getenv("GOOGLE_API_KEY")
 if not api_key:
-    raise ValueError("OPENAI_API_KEY environment variable not set.")
+    print("Error: GOOGLE_API_KEY environment variable is not set.")
+    print("Please set it with your Google API key.")
+    exit(1)
 
-# Define the system prompt for our agent.
-# The agent will act as a helpful assistant.
-sys_prompt = "You are a helpful assistant named Friday."
+# Create a Gemini-powered agent
+# Use the GeminiChatWrapper to use the Gemini API
+gemini_model = GeminiChatWrapper(
+    model_name="gemini-2.5-flash-lite",
+    api_key=api_key
+)
 
-async def run_conversation():
-    """
-    Runs a simple conversational loop between a user and an agent.
-    """
-    # Initialize the model. We'll use OpenAI's gpt-4o-mini as a good starting point.
-    # AgentScope is model-agnostic, so you can easily swap this out later.
-    model = OpenAIChatModel(
-        model_name="gpt-4o-mini",
-        api_key=api_key,
-    )
-    
-    # Create the agent. We'll use a ReActAgent, which can reason and use tools if we add them later.
-    agent = ReActAgent(
-        name="Friday",
-        sys_prompt=sys_prompt,
-        model=model,
-        memory=InMemoryMemory(), # This memory will store the conversation history.
-        toolkit=Toolkit(),
-    )
-    
-    # Create the user proxy agent. This is how we interact with our agent.
-    user = UserAgent(name="User")
-    
-    # Start the conversation loop.
-    print("Friday: Hello! How can I help you today? (Type 'exit' to end the conversation)")
-    
-    # Initialize the message to None to start the conversation.
-    msg = None
-    
+# Create a DialogAgent that uses the Gemini model
+assistant = DialogAgent(
+    name="assistant",
+    model_config_name=gemini_model,
+    sys_prompt="You are a helpful AI assistant."
+)
+
+# Create a UserAgent to handle user input
+user = UserAgent()
+
+# Create a sequential pipeline to connect the user and the assistant
+pipeline = SequentialPipeline([user, assistant])
+
+# Start the chat loop
+print("Start chatting with the assistant. Type 'exit' to quit.")
+try:
     while True:
-        # Get a response from the agent.
-        response = await agent(msg)
-        
-        # Check if the user wants to exit.
-        if response.content.lower() == "exit":
-            print("Friday: Goodbye!")
+        x = pipeline()
+        if x.content == "exit":
             break
-            
-        # Get the user's next message.
-        msg = user(response)
-        
-        if msg.content.lower() == "exit":
-            print("Friday: Goodbye!")
-            break
-
-if __name__ == "__main__":
-    # AgentScope uses an asynchronous event loop.
-    asyncio.run(run_conversation())
+except KeyboardInterrupt:
+    print("\nChat session ended.")
