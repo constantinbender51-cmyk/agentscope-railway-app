@@ -1,2 +1,2 @@
-agentscope
+agentscope[full]
 google-generativeai
